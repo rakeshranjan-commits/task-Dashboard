@@ -29,37 +29,29 @@
     .progress-bar { background: #ddd; height: 20px; border-radius: 10px; overflow: hidden; margin: 10px 0; }
     .progress-fill { background: #4caf50; height: 100%; transition: width 0.3s; }
     .delete-btn { background: #dc3545; padding: 5px 10px; font-size: 12px; }
+    .edit-btn { background: #17a2b8; padding: 5px 10px; font-size: 12px; margin-right: 5px; }
     .filter-section { background: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
     .filter-row { display: flex; gap: 15px; align-items: end; flex-wrap: wrap; }
     .filter-row .form-group { flex: 1; min-width: 200px; margin-bottom: 0; }
     .task-detail { background: white; padding: 10px; margin: 5px 0; border-left: 3px solid #f58220; border-radius: 4px; }
     h2, h3 { color: #333; }
-    .setup-notice { background: #fff3cd; border: 2px solid #ffc107; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+    .modal-content { background: white; margin: 10% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; }
+    .modal-close { float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="setup-notice">
-      <h2>🔧 Firebase Setup Required</h2>
-      <p><strong>This version uses Firebase for shared data across all users.</strong></p>
-      <p>To enable shared data, follow these steps:</p>
-      <ol style="margin-left: 20px; margin-top: 10px;">
-        <li>Go to <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a></li>
-        <li>Create a new project (free)</li>
-        <li>Enable Realtime Database</li>
-        <li>Copy your Firebase config</li>
-        <li>Replace the config below in the script section</li>
-      </ol>
-      <p style="margin-top: 10px;"><strong>See FIREBASE_SETUP.md for detailed instructions.</strong></p>
-    </div>
-
-    <h1>📊 Task Management Dashboard (Shared Data)</h1>
+    <h1>📊 Task Management Dashboard (Shared)</h1>
     
     <div class="tabs">
       <button class="tab active" onclick="showTab('assign')">Assign Tasks</button>
       <button class="tab" onclick="showTab('manage')">Manage Tasks</button>
       <button class="tab" onclick="showTab('filter')">Custom Filter</button>
       <button class="tab" onclick="showTab('daily')">Daily Summary</button>
+      <button class="tab" onclick="showTab('weekly')">Weekly Summary</button>
+      <button class="tab" onclick="showTab('monthly')">Monthly Summary</button>
+      <button class="tab" onclick="showTab('backup')">Backup & Export</button>
     </div>
 
     <div id="assign" class="section active">
@@ -84,7 +76,7 @@
     </div>
 
     <div id="manage" class="section">
-      <h2>Today's Tasks (Shared with Team)</h2>
+      <h2>Today's Tasks</h2>
       <div id="taskList"></div>
     </div>
 
@@ -93,14 +85,33 @@
       <div class="filter-section">
         <div class="filter-row">
           <div class="form-group">
-            <label>Single Date</label>
+            <label>Single Date (Optional)</label>
             <input type="date" id="filterSingleDate">
           </div>
           <div class="form-group">
-            <label>Employee ID</label>
+            <label>OR Date Range From</label>
+            <input type="date" id="filterFromDate">
+          </div>
+          <div class="form-group">
+            <label>Date Range To</label>
+            <input type="date" id="filterToDate">
+          </div>
+        </div>
+        <div class="filter-row" style="margin-top: 10px;">
+          <div class="form-group">
+            <label>Filter by Employee ID (Optional)</label>
             <input type="text" id="filterEmpId" placeholder="e.g., EMP001">
           </div>
+          <div class="form-group">
+            <label>Filter by Status (Optional)</label>
+            <select id="filterStatus">
+              <option value="">All</option>
+              <option value="Pending">Pending</option>
+              <option value="Done">Done</option>
+            </select>
+          </div>
           <button onclick="applyCustomFilter()">Apply Filter</button>
+          <button onclick="clearFilter()" style="background: #6c757d;">Clear</button>
         </div>
       </div>
       <div id="filterResults"></div>
@@ -111,22 +122,99 @@
       <div class="filter-section">
         <div class="filter-row">
           <div class="form-group">
-            <label>Select Date</label>
+            <label>Select Date (Optional)</label>
             <input type="date" id="dailyDate">
+          </div>
+          <div class="form-group">
+            <label>Filter by Employee ID (Optional)</label>
+            <input type="text" id="dailyEmpId" placeholder="e.g., EMP001">
           </div>
           <button onclick="showDailySummary()">View Summary</button>
         </div>
       </div>
       <div id="dailySummaryContent"></div>
     </div>
+
+    <div id="weekly" class="section">
+      <h2>Weekly Summary</h2>
+      <div class="filter-section">
+        <div class="filter-row">
+          <div class="form-group">
+            <label>Select Week Start Date (Optional)</label>
+            <input type="date" id="weeklyDate">
+          </div>
+          <div class="form-group">
+            <label>Filter by Employee ID (Optional)</label>
+            <input type="text" id="weeklyEmpId" placeholder="e.g., EMP001">
+          </div>
+          <button onclick="showWeeklySummary()">View Summary</button>
+        </div>
+      </div>
+      <div id="weeklySummaryContent"></div>
+    </div>
+
+    <div id="monthly" class="section">
+      <h2>Monthly Summary</h2>
+      <div class="filter-section">
+        <div class="filter-row">
+          <div class="form-group">
+            <label>Select Month (Optional)</label>
+            <input type="month" id="monthlyDate">
+          </div>
+          <div class="form-group">
+            <label>Filter by Employee ID (Optional)</label>
+            <input type="text" id="monthlyEmpId" placeholder="e.g., EMP001">
+          </div>
+          <button onclick="showMonthlySummary()">View Summary</button>
+        </div>
+      </div>
+      <div id="monthlySummaryContent"></div>
+    </div>
+
+    <div id="backup" class="section">
+      <h2>💾 Backup & Export Data</h2>
+      <div class="summary-card">
+        <h3>📊 Current Data Status</h3>
+        <p id="dataStatus"></p>
+      </div>
+      <div class="summary-card">
+        <h3>⬇️ Export Data</h3>
+        <p>Download your data as a backup file.</p>
+        <button onclick="exportData()">📥 Download Backup (JSON)</button>
+        <button onclick="exportToExcel()" style="background: #28a745; margin-left: 10px;">📊 Export to Excel (CSV)</button>
+      </div>
+    </div>
   </div>
 
-  <!-- Firebase SDK -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeEditModal()">&times;</span>
+      <h2>Edit Task</h2>
+      <div class="form-group">
+        <label>Employee ID</label>
+        <input type="text" id="editEmpId">
+      </div>
+      <div class="form-group">
+        <label>Employee Name</label>
+        <input type="text" id="editEmpName">
+      </div>
+      <div class="form-group">
+        <label>Task Description</label>
+        <textarea id="editTaskDesc" rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="editTaskDate">
+      </div>
+      <button onclick="saveEdit()">Save Changes</button>
+      <button onclick="closeEditModal()" style="background: #6c757d; margin-left: 10px;">Cancel</button>
+    </div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
   <script>
-    // TODO: Replace with your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBhedAiDxsiX2KtG9V0UIUhT7-p_JS8c7E",
       authDomain: "task-dashboard-57a61.firebaseapp.com",
@@ -137,18 +225,16 @@
       appId: "1:680196085818:web:d3fe00df6d3cd1a8213d03"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
     let tasks = [];
+    let editingTaskKey = null;
 
-    // Load tasks from Firebase
     database.ref('tasks').on('value', (snapshot) => {
       tasks = [];
       snapshot.forEach((child) => {
         tasks.push({ firebaseKey: child.key, ...child.val() });
       });
-      console.log('Tasks loaded:', tasks.length);
     });
 
     function showTab(tab) {
@@ -162,6 +248,18 @@
         document.getElementById('dailyDate').value = new Date().toISOString().split('T')[0];
         showDailySummary();
       }
+      if (tab === 'weekly') {
+        const today = new Date();
+        const monday = new Date(today.setDate(today.getDate() - today.getDay() + 1));
+        document.getElementById('weeklyDate').value = monday.toISOString().split('T')[0];
+        showWeeklySummary();
+      }
+      if (tab === 'monthly') {
+        document.getElementById('monthlyDate').value = new Date().toISOString().slice(0, 7);
+        showMonthlySummary();
+      }
+      if (tab === 'backup') showDataStatus();
+      if (tab === 'filter') clearFilter();
     }
 
     function assignTask() {
@@ -175,16 +273,15 @@
         return;
       }
 
-      const newTask = {
+      database.ref('tasks').push({
         id: Date.now(),
         empId,
         empName,
         taskDesc,
         date: taskDate,
         status: 'Pending'
-      };
+      });
 
-      database.ref('tasks').push(newTask);
       alert('Task assigned successfully!');
       document.getElementById('empId').value = '';
       document.getElementById('empName').value = '';
@@ -213,7 +310,11 @@
             ${task.status === 'Pending' ? `
               <button onclick="markTask('${task.firebaseKey}', 'Done')">✓ Done</button>
               <button onclick="markTask('${task.firebaseKey}', 'Pending')" class="delete-btn">✗ Not Done</button>
-            ` : task.status}
+              <button onclick="openEditModal('${task.firebaseKey}')" class="edit-btn">✏️ Edit</button>
+              <button onclick="deleteTask('${task.firebaseKey}')" class="delete-btn">🗑️ Delete</button>
+            ` : `${task.status}
+              <button onclick="deleteTask('${task.firebaseKey}')" class="delete-btn">🗑️ Delete</button>
+            `}
           </td>
         </tr>`;
       });
@@ -224,47 +325,347 @@
     function markTask(firebaseKey, status) {
       database.ref('tasks/' + firebaseKey).update({ status });
       alert(status === 'Done' ? 'Task marked as Done!' : 'Task will carry forward');
+    }
+
+    function openEditModal(firebaseKey) {
+      const task = tasks.find(t => t.firebaseKey === firebaseKey);
+      if (!task) return;
+      
+      editingTaskKey = firebaseKey;
+      document.getElementById('editEmpId').value = task.empId;
+      document.getElementById('editEmpName').value = task.empName;
+      document.getElementById('editTaskDesc').value = task.taskDesc;
+      document.getElementById('editTaskDate').value = task.date;
+      document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+      editingTaskKey = null;
+    }
+
+    function saveEdit() {
+      if (!editingTaskKey) return;
+      
+      const empId = document.getElementById('editEmpId').value;
+      const empName = document.getElementById('editEmpName').value;
+      const taskDesc = document.getElementById('editTaskDesc').value;
+      const taskDate = document.getElementById('editTaskDate').value;
+
+      if (!empId || !empName || !taskDesc || !taskDate) {
+        alert('Please fill all fields');
+        return;
+      }
+
+      database.ref('tasks/' + editingTaskKey).update({
+        empId,
+        empName,
+        taskDesc,
+        date: taskDate
+      });
+
+      alert('Task updated successfully!');
+      closeEditModal();
       loadTodayTasks();
     }
 
-    function applyCustomFilter() {
-      const date = document.getElementById('filterSingleDate').value;
-      const empId = document.getElementById('filterEmpId').value.trim();
-      
-      let filtered = tasks;
-      if (date) filtered = filtered.filter(t => t.date === date);
-      if (empId) filtered = filtered.filter(t => t.empId === empId);
-      
-      let html = `<h3>Found ${filtered.length} tasks</h3><table><tr><th>ID</th><th>Name</th><th>Task</th><th>Date</th><th>Status</th></tr>`;
-      filtered.forEach(task => {
-        html += `<tr>
-          <td>${task.empId}</td>
-          <td>${task.empName}</td>
-          <td>${task.taskDesc}</td>
-          <td>${task.date}</td>
-          <td class="${task.status === 'Done' ? 'status-done' : 'status-pending'}">${task.status}</td>
-        </tr>`;
-      });
-      html += '</table>';
-      document.getElementById('filterResults').innerHTML = html;
+    function deleteTask(firebaseKey) {
+      if (confirm('Are you sure you want to delete this task?')) {
+        database.ref('tasks/' + firebaseKey).remove();
+        alert('Task deleted!');
+        loadTodayTasks();
+      }
     }
 
     function showDailySummary() {
       const date = document.getElementById('dailyDate').value || new Date().toISOString().split('T')[0];
-      const dayTasks = tasks.filter(t => t.date === date);
+      const empIdFilter = document.getElementById('dailyEmpId').value.trim();
       
-      const total = dayTasks.length;
-      const completed = dayTasks.filter(t => t.status === 'Done').length;
-      const efficiency = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
+      let dayTasks = tasks.filter(t => t.date === date);
+      if (empIdFilter) dayTasks = dayTasks.filter(t => t.empId === empIdFilter);
       
+      const employees = {};
+      dayTasks.forEach(task => {
+        if (!employees[task.empId]) {
+          employees[task.empId] = { name: task.empName, total: 0, done: 0, tasks: [] };
+        }
+        employees[task.empId].total++;
+        if (task.status === 'Done') employees[task.empId].done++;
+        employees[task.empId].tasks.push(task);
+      });
+
+      const totalTasks = dayTasks.length;
+      const completedTasks = dayTasks.filter(t => t.status === 'Done').length;
+      const efficiency = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : 0;
+
       let html = `
         <div class="summary-card">
-          <h3>📅 ${date} - Efficiency: ${efficiency}%</h3>
-          <p>Total: ${total} | Completed: ${completed}</p>
+          <h3>📅 ${date} - Overall Efficiency: ${efficiency}%</h3>
+          <p>Tasks Assigned: ${totalTasks} | Completed: ${completedTasks}</p>
           <div class="progress-bar"><div class="progress-fill" style="width: ${efficiency}%"></div></div>
-        </div>`;
+          <button onclick="shareSummary('${date}', ${efficiency}, ${totalTasks}, ${completedTasks})">📤 Share Summary</button>
+        </div>
+        <table><tr><th>ID</th><th>Name</th><th>Assigned</th><th>Completed</th><th>Percentage</th></tr>`;
       
-      document.getElementById('dailySummaryContent').innerHTML = html;
+      for (let id in employees) {
+        const emp = employees[id];
+        const percent = ((emp.done / emp.total) * 100).toFixed(1);
+        html += `<tr><td>${id}</td><td>${emp.name}</td><td>${emp.total}</td><td>${emp.done}</td><td>${percent}%</td></tr>`;
+      }
+      html += '</table><h3 style="margin-top: 20px;">Task Details:</h3>';
+      
+      for (let id in employees) {
+        const emp = employees[id];
+        html += `<h4 style="margin-top: 15px;">${emp.name} (${id})</h4>`;
+        emp.tasks.forEach(task => {
+          html += `<div class="task-detail">
+            <strong>${task.taskDesc}</strong><br>
+            <small>Date: ${task.date} | Status: <span class="${task.status === 'Done' ? 'status-done' : 'status-pending'}">${task.status}</span></small>
+          </div>`;
+        });
+      }
+      
+      document.getElementById('dailySummaryContent').innerHTML = html || '<p>No tasks found for this date.</p>';
+    }
+
+    function showWeeklySummary() {
+      const inputDate = document.getElementById('weeklyDate').value;
+      const startDate = inputDate ? new Date(inputDate) : (() => {
+        const today = new Date();
+        return new Date(today.setDate(today.getDate() - today.getDay() + 1));
+      })();
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 6);
+      const empIdFilter = document.getElementById('weeklyEmpId').value.trim();
+      
+      let weekTasks = tasks.filter(t => {
+        const taskDate = new Date(t.date);
+        return taskDate >= startDate && taskDate <= endDate;
+      });
+      if (empIdFilter) weekTasks = weekTasks.filter(t => t.empId === empIdFilter);
+
+      const employees = {};
+      weekTasks.forEach(task => {
+        if (!employees[task.empId]) {
+          employees[task.empId] = { name: task.empName, total: 0, done: 0, tasks: [] };
+        }
+        employees[task.empId].total++;
+        if (task.status === 'Done') employees[task.empId].done++;
+        employees[task.empId].tasks.push(task);
+      });
+
+      const totalTasks = weekTasks.length;
+      const completedTasks = weekTasks.filter(t => t.status === 'Done').length;
+      const efficiency = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : 0;
+
+      let html = `
+        <div class="summary-card">
+          <h3>📊 Week: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}</h3>
+          <p>Efficiency: ${efficiency}% | Tasks: ${totalTasks} | Completed: ${completedTasks}</p>
+          <div class="progress-bar"><div class="progress-fill" style="width: ${efficiency}%"></div></div>
+        </div>
+        <table><tr><th>ID</th><th>Name</th><th>Assigned</th><th>Completed</th><th>Percentage</th></tr>`;
+      
+      for (let id in employees) {
+        const emp = employees[id];
+        const percent = ((emp.done / emp.total) * 100).toFixed(1);
+        html += `<tr><td>${id}</td><td>${emp.name}</td><td>${emp.total}</td><td>${emp.done}</td><td>${percent}%</td></tr>`;
+      }
+      html += '</table><h3 style="margin-top: 20px;">Task Details:</h3>';
+      
+      for (let id in employees) {
+        const emp = employees[id];
+        html += `<h4 style="margin-top: 15px;">${emp.name} (${id})</h4>`;
+        emp.tasks.forEach(task => {
+          html += `<div class="task-detail">
+            <strong>${task.taskDesc}</strong><br>
+            <small>Date: ${task.date} | Status: <span class="${task.status === 'Done' ? 'status-done' : 'status-pending'}">${task.status}</span></small>
+          </div>`;
+        });
+      }
+      
+      document.getElementById('weeklySummaryContent').innerHTML = html || '<p>No tasks found for this week.</p>';
+    }
+
+    function showMonthlySummary() {
+      const monthInput = document.getElementById('monthlyDate').value || new Date().toISOString().slice(0, 7);
+      const [year, month] = monthInput.split('-');
+      const empIdFilter = document.getElementById('monthlyEmpId').value.trim();
+      
+      let monthTasks = tasks.filter(t => {
+        const taskDate = new Date(t.date);
+        return taskDate.getFullYear() == year && (taskDate.getMonth() + 1) == month;
+      });
+      if (empIdFilter) monthTasks = monthTasks.filter(t => t.empId === empIdFilter);
+
+      const employees = {};
+      monthTasks.forEach(task => {
+        if (!employees[task.empId]) {
+          employees[task.empId] = { name: task.empName, total: 0, done: 0, tasks: [] };
+        }
+        employees[task.empId].total++;
+        if (task.status === 'Done') employees[task.empId].done++;
+        employees[task.empId].tasks.push(task);
+      });
+
+      const totalTasks = monthTasks.length;
+      const completedTasks = monthTasks.filter(t => t.status === 'Done').length;
+      const efficiency = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : 0;
+
+      let html = `
+        <div class="summary-card">
+          <h3>📈 Month: ${monthInput}</h3>
+          <p>Efficiency: ${efficiency}% | Tasks: ${totalTasks} | Completed: ${completedTasks}</p>
+          <div class="progress-bar"><div class="progress-fill" style="width: ${efficiency}%"></div></div>
+        </div>
+        <table><tr><th>ID</th><th>Name</th><th>Assigned</th><th>Completed</th><th>Percentage</th></tr>`;
+      
+      for (let id in employees) {
+        const emp = employees[id];
+        const percent = ((emp.done / emp.total) * 100).toFixed(1);
+        html += `<tr><td>${id}</td><td>${emp.name}</td><td>${emp.total}</td><td>${emp.done}</td><td>${percent}%</td></tr>`;
+      }
+      html += '</table><h3 style="margin-top: 20px;">Task Details:</h3>';
+      
+      for (let id in employees) {
+        const emp = employees[id];
+        html += `<h4 style="margin-top: 15px;">${emp.name} (${id})</h4>`;
+        emp.tasks.forEach(task => {
+          html += `<div class="task-detail">
+            <strong>${task.taskDesc}</strong><br>
+            <small>Date: ${task.date} | Status: <span class="${task.status === 'Done' ? 'status-done' : 'status-pending'}">${task.status}</span></small>
+          </div>`;
+        });
+      }
+      
+      document.getElementById('monthlySummaryContent').innerHTML = html || '<p>No tasks found for this month.</p>';
+    }
+
+    function applyCustomFilter() {
+      const singleDate = document.getElementById('filterSingleDate').value;
+      const fromDate = document.getElementById('filterFromDate').value;
+      const toDate = document.getElementById('filterToDate').value;
+      const empId = document.getElementById('filterEmpId').value.trim();
+      const status = document.getElementById('filterStatus').value;
+
+      let filteredTasks = tasks;
+
+      if (singleDate) {
+        filteredTasks = filteredTasks.filter(t => t.date === singleDate);
+      } else if (fromDate && toDate) {
+        filteredTasks = filteredTasks.filter(t => t.date >= fromDate && t.date <= toDate);
+      } else if (fromDate) {
+        filteredTasks = filteredTasks.filter(t => t.date >= fromDate);
+      } else if (toDate) {
+        filteredTasks = filteredTasks.filter(t => t.date <= toDate);
+      }
+
+      if (empId) filteredTasks = filteredTasks.filter(t => t.empId === empId);
+      if (status) filteredTasks = filteredTasks.filter(t => t.status === status);
+
+      const employees = {};
+      filteredTasks.forEach(task => {
+        if (!employees[task.empId]) {
+          employees[task.empId] = { name: task.empName, total: 0, done: 0, tasks: [] };
+        }
+        employees[task.empId].total++;
+        if (task.status === 'Done') employees[task.empId].done++;
+        employees[task.empId].tasks.push(task);
+      });
+
+      const totalTasks = filteredTasks.length;
+      const completedTasks = filteredTasks.filter(t => t.status === 'Done').length;
+      const efficiency = totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : 0;
+
+      let dateRange = singleDate ? singleDate : (fromDate && toDate ? `${fromDate} to ${toDate}` : (fromDate ? `From ${fromDate}` : (toDate ? `Until ${toDate}` : 'All dates')));
+
+      let html = `
+        <div class="summary-card">
+          <h3>📊 Filter Results: ${dateRange}</h3>
+          <p>Total Tasks: ${totalTasks} | Completed: ${completedTasks} | Efficiency: ${efficiency}%</p>
+          <div class="progress-bar"><div class="progress-fill" style="width: ${efficiency}%"></div></div>
+        </div>
+        <table><tr><th>ID</th><th>Name</th><th>Assigned</th><th>Completed</th><th>Percentage</th></tr>`;
+      
+      for (let id in employees) {
+        const emp = employees[id];
+        const percent = ((emp.done / emp.total) * 100).toFixed(1);
+        html += `<tr><td>${id}</td><td>${emp.name}</td><td>${emp.total}</td><td>${emp.done}</td><td>${percent}%</td></tr>`;
+      }
+      html += '</table><h3 style="margin-top: 20px;">Task Details:</h3>';
+      
+      for (let id in employees) {
+        const emp = employees[id];
+        html += `<h4 style="margin-top: 15px;">${emp.name} (${id})</h4>`;
+        emp.tasks.forEach(task => {
+          html += `<div class="task-detail">
+            <strong>${task.taskDesc}</strong><br>
+            <small>Date: ${task.date} | Status: <span class="${task.status === 'Done' ? 'status-done' : 'status-pending'}">${task.status}</span></small>
+          </div>`;
+        });
+      }
+      
+      document.getElementById('filterResults').innerHTML = html || '<p>No tasks found matching the filter criteria.</p>';
+    }
+
+    function clearFilter() {
+      document.getElementById('filterSingleDate').value = '';
+      document.getElementById('filterFromDate').value = '';
+      document.getElementById('filterToDate').value = '';
+      document.getElementById('filterEmpId').value = '';
+      document.getElementById('filterStatus').value = '';
+      document.getElementById('filterResults').innerHTML = '<p>Apply filters to see results.</p>';
+    }
+
+    function shareSummary(date, efficiency, total, completed) {
+      const text = `📊 Daily Summary - ${date}\n\n✅ Efficiency: ${efficiency}%\n📋 Tasks Assigned: ${total}\n✓ Completed: ${completed}\n\nGenerated by Task Dashboard`;
+      
+      if (navigator.share) {
+        navigator.share({ title: 'Daily Summary', text });
+      } else {
+        navigator.clipboard.writeText(text);
+        alert('Summary copied to clipboard!');
+      }
+    }
+
+    function showDataStatus() {
+      const totalTasks = tasks.length;
+      const completed = tasks.filter(t => t.status === 'Done').length;
+      const pending = tasks.filter(t => t.status === 'Pending').length;
+      const employees = [...new Set(tasks.map(t => t.empId))].length;
+      
+      document.getElementById('dataStatus').innerHTML = `
+        <strong>Total Tasks:</strong> ${totalTasks}<br>
+        <strong>Completed:</strong> ${completed} | <strong>Pending:</strong> ${pending}<br>
+        <strong>Total Employees:</strong> ${employees}<br>
+        <strong>Storage:</strong> Firebase Cloud (Shared across all users)
+      `;
+    }
+
+    function exportData() {
+      const dataStr = JSON.stringify(tasks, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `task-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      alert('Backup downloaded successfully!');
+    }
+
+    function exportToExcel() {
+      let csv = 'Employee ID,Employee Name,Task Description,Date,Status\n';
+      tasks.forEach(task => {
+        csv += `"${task.empId}","${task.empName}","${task.taskDesc}","${task.date}","${task.status}"\n`;
+      });
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `task-export-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      alert('Excel file downloaded successfully!');
     }
 
     document.getElementById('taskDate').value = new Date().toISOString().split('T')[0];
