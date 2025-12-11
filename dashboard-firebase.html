@@ -100,6 +100,22 @@
         <button onclick="addTaskInput()" style="background: #17a2b8;">+ Add Another Task</button>
         <button onclick="removeTaskInput()" style="background: #dc3545;">- Remove Task</button>
       </div>
+      <div class="filter-section" style="margin-top: 20px;">
+        <h3>📧 Email Notification (Optional)</h3>
+        <div class="filter-row">
+          <div class="form-group">
+            <label>Sender Email</label>
+            <input type="email" id="assignSenderEmail" value="jayant.pahwa@collegedunia.com">
+          </div>
+          <div class="form-group">
+            <label>Send Assignment Email</label>
+            <select id="sendAssignmentEmail">
+              <option value="no">No, just assign tasks</option>
+              <option value="yes">Yes, send email notification</option>
+            </select>
+          </div>
+        </div>
+      </div>
       <button onclick="assignTasks()">Assign All Tasks</button>
     </div>
 
@@ -238,7 +254,7 @@
         <div class="filter-row">
           <div class="form-group">
             <label>Sender Email</label>
-            <input type="email" id="senderEmail" placeholder="your-email@company.com">
+            <input type="email" id="senderEmail" value="jayant.pahwa@collegedunia.com">
           </div>
           <div class="form-group">
             <label>Receiver Email</label>
@@ -260,9 +276,15 @@
             <li>Create an email template with variables: from_email, to_email, subject, message, from_name</li>
             <li>Replace the configuration in the code:</li>
           </ol>
-          <pre style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 10px 0; font-size: 12px;">emailjs.init('KUQSF2ISLPwHjbxCW');
-const EMAIL_SERVICE_ID = 'service_t5m2k1x';
-const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
+          <pre style="background: #d4edda; padding: 10px; border-radius: 4px; margin: 10px 0; font-size: 12px;">✅ Updated Configuration (Jayant's Account)
+Public Key: n8_ZMBGUcsdqauH09
+Service ID: service_zqx3vwn (CORRECTED)
+Template ID: template_5at1vkm
+
+Account: jayant.pahwa@collegedunia.com</pre>
+          <p><strong>✅ EmailJS Setup Complete!</strong></p>
+          <p>Emails will now be sent from: <code>jayant.pahwa@collegedunia.com</code></p>
+          <p><strong>Template Variables:</strong> from_email, to_email, subject, message, from_name</p>
           <p><strong>Without setup:</strong> System will use mailto (opens your email client)</p>
           <button onclick="hideEmailSetup()" style="background: #6c757d; margin-top: 10px;">Close</button>
         </div>
@@ -332,10 +354,46 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
     let editingTaskKey = null;
     let taskCounter = 1;
     
-    // EmailJS Configuration
-    emailjs.init('KUQSF2ISLPwHjbxCW');
-    const EMAIL_SERVICE_ID = 'service_t5m2k1x';
-    const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';
+    // EmailJS Configuration - Jayant's Account
+    const EMAILJS_PUBLIC_KEY = 'n8_ZMBGUcsdqauH09';
+    const EMAIL_SERVICE_ID = 'service_zqx3vwn';     // Fixed: was service_zqx3vwm
+    const EMAIL_TEMPLATE_ID = 'template_5at1vkm';
+    
+    // Initialize EmailJS
+    try {
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+      console.log('📧 EmailJS initialized with key:', EMAILJS_PUBLIC_KEY);
+    } catch (error) {
+      console.error('❌ EmailJS initialization failed:', error);
+    }
+    
+    // Test EmailJS connection on load
+    function testEmailJSConnection() {
+      console.log('🔍 Testing EmailJS connection...');
+      console.log('Public Key:', EMAILJS_PUBLIC_KEY);
+      console.log('Service ID:', EMAIL_SERVICE_ID);
+      console.log('Template ID:', EMAIL_TEMPLATE_ID);
+      
+      return emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+        from_email: 'test@test.com',
+        to_email: 'test@test.com',
+        subject: 'Test Connection',
+        message: 'Testing EmailJS connection',
+        from_name: 'Test'
+      }).then(
+        function(response) {
+          console.log('✅ EmailJS connection successful:', response);
+          return true;
+        },
+        function(error) {
+          console.error('❌ EmailJS connection failed:', error);
+          if (error.text && error.text.includes('Service ID')) {
+            console.error('⚠️ Service ID not found. Please check EmailJS dashboard.');
+          }
+          return false;
+        }
+      );
+    }
 
     database.ref('tasks').on('value', (snapshot) => {
       tasks = [];
@@ -352,8 +410,12 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
           employees[task.empId] = {
             empId: task.empId,
             empName: task.empName,
-            empEmail: task.empEmail
+            empEmail: task.empEmail || null
           };
+        } else {
+          // Update with latest non-null values
+          if (task.empName) employees[task.empId].empName = task.empName;
+          if (task.empEmail) employees[task.empId].empEmail = task.empEmail;
         }
       });
     }
@@ -362,13 +424,32 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
       const empId = document.getElementById('empId').value.trim();
       if (empId && employees[empId]) {
         const emp = employees[empId];
-        document.getElementById('empName').value = emp.empName || '';
-        document.getElementById('empEmail').value = emp.empEmail || '';
-        document.getElementById('nameOptional').textContent = emp.empName ? '(Auto-filled)' : '';
-        document.getElementById('emailOptional').textContent = emp.empEmail ? '(Auto-filled)' : '(Optional)';
+        if (emp.empName) {
+          document.getElementById('empName').value = emp.empName;
+          document.getElementById('nameOptional').textContent = '(Auto-filled)';
+        }
+        if (emp.empEmail) {
+          document.getElementById('empEmail').value = emp.empEmail;
+          document.getElementById('emailOptional').textContent = '(Auto-filled)';
+        } else {
+          document.getElementById('emailOptional').textContent = '(Optional)';
+        }
       } else {
         document.getElementById('nameOptional').textContent = '';
         document.getElementById('emailOptional').textContent = '(Optional)';
+      }
+    }
+    
+    function updateEmployeeProfile(empId, empName, empEmail) {
+      if (empId && empName) {
+        if (!employees[empId]) {
+          employees[empId] = {};
+        }
+        employees[empId].empId = empId;
+        employees[empId].empName = empName;
+        if (empEmail) {
+          employees[empId].empEmail = empEmail;
+        }
       }
     }
     
@@ -399,7 +480,25 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.getElementById(tab).classList.add('active');
-      event.target.classList.add('active');
+      
+      // Find and activate the correct tab button
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(t => {
+        if (t.textContent.toLowerCase().includes(tab) || 
+            (tab === 'assign' && t.textContent.includes('Assign')) ||
+            (tab === 'manage' && t.textContent.includes('Manage')) ||
+            (tab === 'filter' && t.textContent.includes('Filter')) ||
+            (tab === 'daily' && t.textContent.includes('Daily')) ||
+            (tab === 'weekly' && t.textContent.includes('Weekly')) ||
+            (tab === 'monthly' && t.textContent.includes('Monthly')) ||
+            (tab === 'email' && t.textContent.includes('Email')) ||
+            (tab === 'backup' && t.textContent.includes('Backup'))) {
+          t.classList.add('active');
+        }
+      });
+      
+      // Save current tab to localStorage
+      localStorage.setItem('currentTab', tab);
       
       if (tab === 'manage') loadTodayTasks();
       if (tab === 'daily') {
@@ -428,6 +527,8 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
       const empName = document.getElementById('empName').value.trim();
       const empEmail = document.getElementById('empEmail').value.trim();
       const taskDate = document.getElementById('taskDate').value;
+      const senderEmail = document.getElementById('assignSenderEmail').value.trim();
+      const sendEmail = document.getElementById('sendAssignmentEmail').value;
       
       if (!empId || !empName || !taskDate) {
         alert('Please fill Employee ID, Name, and Date');
@@ -449,6 +550,11 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
         return;
       }
       
+      if (sendEmail === 'yes' && (!senderEmail || !empEmail)) {
+        alert('Please provide both sender email and employee email for notification');
+        return;
+      }
+      
       // Save all tasks
       const promises = validTasks.map(taskDesc => {
         return database.ref('tasks').push({
@@ -463,11 +569,61 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
       });
       
       Promise.all(promises).then(() => {
+        // Update employee profile with latest info
+        updateEmployeeProfile(empId, empName, empEmail);
+        
         alert(`${validTasks.length} task(s) assigned successfully to ${empName}!`);
+        
+        // Send email notification if requested
+        if (sendEmail === 'yes') {
+          sendAssignmentEmail(empId, empName, empEmail, validTasks, taskDate, senderEmail);
+        }
+        
         clearTaskForm();
       }).catch(error => {
         alert('Error assigning tasks: ' + error.message);
       });
+    }
+    
+    function sendAssignmentEmail(empId, empName, empEmail, tasks, taskDate, senderEmail) {
+      const subject = `New Task Assignment - ${empName} (${empId})`;
+      let body = `Dear ${empName},\n\n`;
+      body += `You have been assigned ${tasks.length} new task(s) for ${new Date(taskDate).toLocaleDateString()}:\n\n`;
+      
+      tasks.forEach((task, index) => {
+        body += `${index + 1}. ${task}\n`;
+      });
+      
+      body += `\nPlease complete these tasks by the assigned date.\n\n`;
+      body += `Best regards,\n${senderEmail}\n\n`;
+      body += `---\nSent via Task Management System`;
+      
+      // Send via EmailJS with better error handling
+      emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
+        from_email: senderEmail,
+        to_email: empEmail,
+        subject: subject,
+        message: body,
+        from_name: senderEmail.split('@')[0]
+      }).then(
+        function(response) {
+          console.log('✅ Assignment Email Success:', response);
+          alert('✅ Tasks assigned and email notification sent!');
+        },
+        function(error) {
+          console.error('❌ Assignment Email Error:', error);
+          
+          let errorMsg = 'Email notification failed';
+          if (error.text) {
+            errorMsg += ': ' + error.text;
+          }
+          
+          // Fallback to mailto
+          const mailtoLink = `mailto:${empEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          window.open(mailtoLink);
+          alert(`⚠️ Tasks assigned! ${errorMsg} - opened email client as fallback.`);
+        }
+      );
     }
     
     function clearTaskForm() {
@@ -495,9 +651,10 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
       const today = new Date().toISOString().split('T')[0];
       const todayDate = new Date(today);
       
+      // Only show pending tasks (today's tasks + overdue pending tasks)
       const todayTasks = tasks.filter(t => {
         const taskDate = new Date(t.date);
-        return (t.date === today) || (taskDate < todayDate && t.status === 'Pending');
+        return t.status === 'Pending' && ((t.date === today) || (taskDate < todayDate));
       });
       
       // Sort tasks by employee ID
@@ -505,36 +662,48 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
       
       let html = '<table><tr><th>ID</th><th>Name</th><th>Task</th><th>Date</th><th>Status</th><th>Action</th></tr>';
       todayTasks.forEach(task => {
-        const isPastDue = task.date < today && task.status === 'Pending';
+        const isPastDue = task.date < today;
         html += `<tr style="${isPastDue ? 'background: #fff3cd;' : ''}">
           <td>${task.empId}</td>
           <td>${task.empName}</td>
           <td>${task.taskDesc}${isPastDue ? ' <span style="color: red;">(OVERDUE)</span>' : ''}</td>
           <td>${task.date}</td>
-          <td class="${task.status === 'Done' ? 'status-done' : 'status-pending'}">${getTaskStatusDisplay(task)}</td>
+          <td class="status-pending">${task.status}</td>
           <td>
-            ${task.status === 'Pending' ? `
-              <button onclick="markTask('${task.firebaseKey}', 'Done')">✓ Done</button>
-              <button onclick="markTask('${task.firebaseKey}', 'Pending')" class="delete-btn">✗ Not Done</button>
-              <button onclick="openEditModal('${task.firebaseKey}')" class="edit-btn">✏️ Edit</button>
-              <button onclick="deleteTask('${task.firebaseKey}')" class="delete-btn">🗑️ Delete</button>
-            ` : `${task.status}
-              <button onclick="deleteTask('${task.firebaseKey}')" class="delete-btn">🗑️ Delete</button>
-            `}
+            <button onclick="markTask('${task.firebaseKey}', 'Done')">✓ Done</button>
+            <button onclick="markTask('${task.firebaseKey}', 'Pending')" class="delete-btn">✗ Not Done</button>
+            <button onclick="openEditModal('${task.firebaseKey}')" class="edit-btn">✏️ Edit</button>
+            <button onclick="deleteTask('${task.firebaseKey}')" class="delete-btn">🗑️ Delete</button>
           </td>
         </tr>`;
       });
       html += '</table>';
-      document.getElementById('taskList').innerHTML = html || '<p>No tasks for today.</p>';
+      document.getElementById('taskList').innerHTML = html || '<p>No pending tasks for today.</p>';
     }
 
     function markTask(firebaseKey, status) {
+      if (status === 'Done') {
+        // Instant UI removal
+        const button = event.target;
+        const row = button.closest('tr');
+        row.style.transition = 'opacity 0.3s ease';
+        row.style.opacity = '0';
+        setTimeout(() => {
+          if (row.parentNode) row.parentNode.removeChild(row);
+        }, 300);
+      }
+      
       const updateData = { status };
       if (status === 'Done') {
         updateData.completedDate = new Date().toISOString().split('T')[0];
       }
       database.ref('tasks/' + firebaseKey).update(updateData);
-      alert(status === 'Done' ? 'Task marked as Done!' : 'Task will carry forward');
+      
+      if (status === 'Done') {
+        setTimeout(() => alert('✅ Task marked as Done!'), 100);
+      } else {
+        alert('Task will carry forward');
+      }
     }
 
     function openEditModal(firebaseKey) {
@@ -1094,25 +1263,37 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
       sendButton.innerHTML = '📤 Sending...';
       sendButton.disabled = true;
       
-      // Send email using EmailJS
+      // Send email using EmailJS with better error handling
       emailjs.send(EMAIL_SERVICE_ID, EMAIL_TEMPLATE_ID, {
         from_email: senderEmail,
         to_email: receiverEmail,
         subject: subject,
         message: body,
-        from_name: 'Task Management System'
+        from_name: senderEmail.split('@')[0]
       }).then(
         function(response) {
+          console.log('✅ EmailJS Success:', response);
           alert('✅ Email sent successfully!');
           sendButton.innerHTML = originalText;
           sendButton.disabled = false;
         },
         function(error) {
-          console.error('EmailJS Error:', error);
+          console.error('❌ EmailJS Error Details:', error);
+          console.error('Service ID:', EMAIL_SERVICE_ID);
+          console.error('Template ID:', EMAIL_TEMPLATE_ID);
+          
+          // Show detailed error message
+          let errorMsg = 'Email sending failed';
+          if (error.text) {
+            errorMsg += ': ' + error.text;
+          } else if (error.message) {
+            errorMsg += ': ' + error.message;
+          }
+          
           // Fallback to mailto
           const mailtoLink = `mailto:${receiverEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
           window.open(mailtoLink);
-          alert('⚠️ Direct sending failed. Opening email client as fallback.');
+          alert(`⚠️ ${errorMsg}\n\nOpening email client as fallback.`);
           sendButton.innerHTML = originalText;
           sendButton.disabled = false;
         }
@@ -1120,12 +1301,11 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
     }
     
     function autoFillReceiverEmail() {
-      const empId = document.getElementById('emailEmpId').value;
-      if (empId) {
-        const employee = tasks.find(t => t.empId === empId);
-        if (employee && employee.empEmail) {
-          document.getElementById('receiverEmail').value = employee.empEmail;
-        }
+      const empId = document.getElementById('emailEmpId').value.trim();
+      if (empId && employees[empId] && employees[empId].empEmail) {
+        document.getElementById('receiverEmail').value = employees[empId].empEmail;
+      } else {
+        document.getElementById('receiverEmail').value = '';
       }
     }
     
@@ -1142,8 +1322,30 @@ const EMAIL_TEMPLATE_ID = 'template_8q6sh4s';</pre>
       document.getElementById('taskDate').value = new Date().toISOString().split('T')[0];
       toggleDateFields();
       
+      // Test EmailJS connection
+      setTimeout(() => {
+        testEmailJSConnection().then(success => {
+          if (success) {
+            console.log('✅ EmailJS is ready for use');
+          } else {
+            console.warn('⚠️ EmailJS setup incomplete - using mailto fallback');
+            console.warn('📝 Follow NEW_EMAILJS_SETUP.md to complete setup');
+          }
+        });
+      }, 1000);
+      
+      // Restore last active tab
+      const savedTab = localStorage.getItem('currentTab');
+      if (savedTab && document.getElementById(savedTab)) {
+        showTab(savedTab);
+      }
+      
       // Auto-fill receiver email when employee ID changes
       document.getElementById('emailEmpId').addEventListener('input', autoFillReceiverEmail);
+      document.getElementById('emailEmpId').addEventListener('change', autoFillReceiverEmail);
+      
+      // Auto-fill employee email in assign tasks
+      document.getElementById('empId').addEventListener('input', loadEmployeeProfile);
     });
   </script>
 </body>
